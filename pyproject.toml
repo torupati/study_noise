@@ -1,0 +1,19 @@
+[tool.poetry]
+name = "study-noise"
+version = "0.1.0"
+description = ""
+authors = ["torupa <xpt77@outlook.com>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.12"
+matplotlib = "^3.10.0"
+numpy = "^2.2.0"
+
+
+[tool.poetry.group.dev.dependencies]
+ipython = "^8.30.0"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
