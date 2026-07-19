@@ -2,12 +2,12 @@ import numpy as np
 
 
 def simulate_white_noise(n_samples: int, fs: float, sigma: float = 1.0, random_state=None) -> np.ndarray:
-    """Generate Gaussian white noise samples.
+    """Generate Gaussian white noise samples of a sensor with specified length and sampling frequency.
 
     Args:
         n_samples: Number of samples to generate.
-        fs: Sampling frequency in Hz (not used for generation but kept for API symmetry).
-        sigma: Standard deviation of the noise.
+        fs: Sampling frequency in Hz
+        sigma: noise density in Unit/rt-Hz (NOT standard deviation of the noise).
         random_state: Seed or numpy Generator-compatible state.
 
     Returns:
@@ -21,6 +21,7 @@ def compute_power_spectrum(x: np.ndarray, fs: float):
     """Compute one-sided power spectral density (PSD) via the periodogram.
 
     Uses the FFT-based periodogram with density scaling so PSD has units of V**2/Hz.
+    This not one-sided PSD, but the one-sided PSD can be obtained by doubling the non-DC and non-Nyquist bins.
 
     Args:
         x: Real-valued time series samples.
@@ -28,7 +29,7 @@ def compute_power_spectrum(x: np.ndarray, fs: float):
 
     Returns:
         freqs: Array of non-negative frequencies (Hz).
-        psd: One-sided PSD values corresponding to freqs.
+        psd: PSD values corresponding to freqs.
     """
     x = np.asarray(x)
     N = x.size
