@@ -15,12 +15,12 @@ def design_fir_lpf(sr: float, f_cutoff: float, num_taps: int = 255) -> np.ndarra
 	h_ideal = 2.0 * fc * np.sinc(2.0 * fc * (n - center))
 	window = np.hamming(num_taps)
 	h = h_ideal * window
-	h /= np.sum(h)
+	#h /= np.sum(h)
 	return h
 
 
 def psd_realin(x: np.ndarray, sr: float) -> tuple[np.ndarray, np.ndarray]:
-	"""Return one-sided PSD estimate from FFT."""
+	"""Return PSD estimate from FFT."""
 	n = len(x)
 	x_fft = np.fft.rfft(x)
 	psd = (np.abs(x_fft) ** 2) / (n * sr)
@@ -61,13 +61,25 @@ def apply_iir_filter(x: np.ndarray, b: np.ndarray, a: np.ndarray) -> np.ndarray:
 	return y
 
 
-def iir_freq_response(b: np.ndarray, a: np.ndarray, freq: np.ndarray, sr: float) -> np.ndarray:
-	"""Evaluate IIR frequency response on the provided frequency grid."""
+def filter_freq_response(b: np.ndarray, a: np.ndarray, freq: np.ndarray, sr: float) -> np.ndarray:
+	"""Evaluate digital filter frequency response for arbitrary-length b and a."""
+	b = np.asarray(b, dtype=float)
+	a = np.asarray(a, dtype=float)
+	if b.ndim != 1 or a.ndim != 1:
+		raise ValueError("b and a must be 1-D arrays")
+	if len(a) == 0 or len(b) == 0:
+		raise ValueError("b and a must be non-empty")
+
 	w = 2.0 * np.pi * freq / sr
-	z1 = np.exp(-1j * w)
-	z2 = z1 * z1
-	num = b[0] + b[1] * z1 + b[2] * z2
-	den = a[0] + a[1] * z1 + a[2] * z2
+	z = np.exp(-1j * w)
+	num = np.zeros_like(z, dtype=complex)
+	den = np.zeros_like(z, dtype=complex)
+
+	for k, bk in enumerate(b):
+		num += bk * (z ** k)
+	for k, ak in enumerate(a):
+		den += ak * (z ** k)
+
 	return num / den
 
 
@@ -75,16 +87,19 @@ def iir_freq_response(b: np.ndarray, a: np.ndarray, freq: np.ndarray, sr: float)
 sig_noise = 0.03
 time_length = 30.0  # [s]
 sr = 400  # [Hz]
-f_cutoff = sr * 0.3
-num_taps = 25
+f_cutoff = sr * 0.25
+num_taps = 11
 
 sample_num = int(sr * time_length)
 t_sample = 1.0 / sr
 t_axis = np.arange(sample_num) / sr
 
+# Generate white noise and apply FIR/IIR filters.
 x_td = sig_noise / np.sqrt(t_sample) * np.random.normal(0.0, 1.0, sample_num)
+# FIR low-pass filter design and application.
 h_fir = design_fir_lpf(sr=sr, f_cutoff=f_cutoff, num_taps=num_taps)
 x_td_lpf = np.convolve(x_td, h_fir, mode="same")
+# IIR low-pass filter design and application.
 b_iir, a_iir = design_iir_butterworth_lpf(sr=sr, f_cutoff=f_cutoff)
 x_td_iir = apply_iir_filter(x_td, b_iir, a_iir)
 
@@ -93,12 +108,12 @@ _, psd_fir = psd_realin(x_td_lpf, sr)
 _, psd_iir = psd_realin(x_td_iir, sr)
 
 # One-sided theoretical white-noise PSD based on noise density.
-psd_in_theory = np.full_like(freq, 2.0 * sig_noise**2)
-psd_in_theory[0] = sig_noise**2
+psd_in_theory = np.full_like(freq, sig_noise**2)
+#psd_in_theory[0] = sig_noise**2
 
-fir_h = np.fft.rfft(h_fir, n=sample_num)
-iir_h = iir_freq_response(b_iir, a_iir, freq, sr)
-psd_fir_theory = psd_in_theory * np.abs(fir_h) ** 2
+fir_h = filter_freq_response(h_fir, np.array([1.0]), freq, sr)
+iir_h = filter_freq_response(b_iir, a_iir, freq, sr)
+psd_fir_theory = psd_in_theory * (np.abs(fir_h) ** 2)
 psd_iir_theory = psd_in_theory * np.abs(iir_h) ** 2
 
 print(f"sample_num={sample_num}")
@@ -110,8 +125,8 @@ print(f"IIR filtered std={np.std(x_td_iir):.6f}")
 # Figure 1: time-domain signals + input PSD only.
 fig1, axs1 = plt.subplots(2, 1, figsize=(10, 7))
 fig1.suptitle(
-	f"White Noise Time Domain + Input PSD (F_cutoff={f_cutoff:.1f} Hz, FIR taps={num_taps})\n"
-	f"noise density={sig_noise} V/sqrt(Hz), sr={sr} Hz"
+	f"White Noise Time Domain and Frequency Domain\n"
+	f"noise density={sig_noise} V/rt-Hz, sr={sr} Hz, T={time_length:.1f} s"
 )
 
 ax = axs1[0]
@@ -144,7 +159,7 @@ fig1.savefig("whitenoise_time_and_input_psd.png", dpi=140)
 fig2, ax_psd = plt.subplots(1, 1, figsize=(10, 5.5))
 fig2.suptitle(
 	f"PSD Comparison with FIR/IIR Responses (F_cutoff={f_cutoff:.1f} Hz, FIR taps={num_taps})\n"
-	f"noise density={sig_noise} V/sqrt(Hz), sr={sr} Hz"
+	f"noise density={sig_noise} V/rt-Hz, sr={sr} Hz"
 )
 
 ax_psd.set_title("Power Spectral Density (PSD)")
@@ -188,3 +203,19 @@ ax_psd.legend(
 
 fig2.tight_layout(rect=[0.0, 0.0, 0.82, 1.0])
 fig2.savefig("whitenoise_psd_fir_iir_response.png", dpi=140)
+
+# Figure 3: FIR coefficients (impulse response).
+fig3, ax_imp = plt.subplots(1, 1, figsize=(8, 4.5))
+fig3.suptitle(
+	f"FIR Impulse Response (num_taps={num_taps}, F_cutoff={f_cutoff:.1f} Hz, sr={sr} Hz)"
+)
+
+tap_idx = np.arange(len(h_fir))
+ax_imp.set_title("FIR filter coefficients")
+ax_imp.stem(tap_idx, h_fir, linefmt="C0-", markerfmt="C0o", basefmt="k-")
+ax_imp.set_xlabel("tap index")
+ax_imp.set_ylabel("coefficient")
+ax_imp.grid(True)
+
+fig3.tight_layout()
+fig3.savefig("fir_impulse_response.png", dpi=140)

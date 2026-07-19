@@ -31,29 +31,15 @@ $$
 
 ### Power Spectrum and Noise Density
 
-Here is the plot. You can verify that the result is independet from the sampling rate, using python script. Spectrum density should be always $\sigma^2$ with any sampling rate, in the unit of valtage square per Hertz.
+Here is a example calculation of sensor white noise. This simulation takes sampling rate, noise density and time length as input. You can verify that the result is independet from the sampling rate, using python script. Spectrum density should be always $\sigma^2$ with any sampling rate, in the unit of valtage square per Hertz.
 
 ![image info](./pictures/whitenoise_time_and_input_psd.png)
 
 
-### Verification
-
-We can say the independency from sampling rate is in another way.
-Power or energy in one second must be equal if it is calculated in time domain or in frequency domain.
-In time domain,
-
-$$
-\sum_{i=1}^{F_s} x_i^2\Delta t = \mathrm{Var}[x_i]\frac{1}{F_s} = \sigma^2F_s
-$$
-
-Frequecy domain, since it is constant as $\sigma^2$ in the limited band width of $F_s$ Hz, the power is $\sigma^2 Fs$.
-This should be calculated from DFT directly.
-
-$$
-\sum_{m=1}^{M} X_m^2\frac{F_s}{M} = M\sum_{i=1}^{N} x_i^2\frac{F_s}{M}
-$$
 
 ### Filtering
+
+Usually sensor data is sampled periodically after passed filtering for anti-aliasing and noise reduction. Here we simulate the case that our simulated white noise is filterd with IIR and FIR low-pass filter. You can see that power density at high frequency is reduced from original noise with both filters.
 
 ![image info](./pictures/whitenoise_psd_fir_iir.png)
 
