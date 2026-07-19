@@ -33,7 +33,7 @@ $$
 
 Here is the plot. You can verify that the result is independet from the sampling rate, using python script. Spectrum density should be always $\sigma^2$ with any sampling rate, in the unit of valtage square per Hertz.
 
-![image info](./pictures/whitenoise.png)
+![image info](./pictures/whitenoise_time_and_input_psd.png)
 
 
 ### Verification
@@ -52,3 +52,8 @@ This should be calculated from DFT directly.
 $$
 \sum_{m=1}^{M} X_m^2\frac{F_s}{M} = M\sum_{i=1}^{N} x_i^2\frac{F_s}{M}
 $$
+
+### Filtering
+
+![image info](./pictures/whitenoise_psd_fir_iir.png)
+
