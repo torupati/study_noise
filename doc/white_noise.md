@@ -6,10 +6,10 @@ $$
 R(t_1,t_2) = \sigma^2 \delta(t_1 - t_2)
 $$
 
-or it depends only on only time lag in stationary state,
+or it depends only on time lag in the stationary state,
 
 $$
-R(\tau) = \sigma^2 \delta(0)
+R(\tau) = \sigma^2 \delta(\tau)
 $$
 
 Here $\sigma$ is noise density.
