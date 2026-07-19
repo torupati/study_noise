@@ -1,19 +1,26 @@
-[tool.poetry]
-name = "study-noise"
-version = "0.1.0"
-description = ""
-authors = ["torupa <xpt77@outlook.com>"]
-readme = "README.md"
-
-[tool.poetry.dependencies]
-python = "^3.12"
-matplotlib = "^3.10.0"
-numpy = "^2.2.0"
-
-
-[tool.poetry.group.dev.dependencies]
-ipython = "^8.30.0"
-
 [build-system]
-requires = ["poetry-core"]
-build-backend = "poetry.core.masonry.api"
+requires = ["setuptools>=42", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "sensor-signal-memo"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "matplotlib>=3.11.1",
+]
+
+[tool.tox]
+envlist = ["uv"]
+
+[tool.tox.testenv.uv]
+deps = ["pytest", "numpy"]
+commands = ["pytest -q"]
+
+[dependency-groups]
+dev = [
+    "pytest>=9.1.1",
+    "ruff>=0.15.22",
+]
