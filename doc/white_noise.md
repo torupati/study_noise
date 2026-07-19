@@ -3,13 +3,13 @@
 White noise is random signal whose power spectral density is flat. Inverse Fourier transform of power spectral density is auto correlation, which has correclation only at the same time point. 
 
 $$
-R(t_1,t_2) = \sigma \delta(t_1 - t_2)
+R(t_1,t_2) = \sigma^2 \delta(t_1 - t_2)
 $$
 
 or it depends only on only time lag in stationary state,
 
 $$
-R(\tau) = \sigma \delta(\tau)
+R(\tau) = \sigma^2 \delta(0)
 $$
 
 Here $\sigma$ is noise density.
@@ -29,11 +29,14 @@ w_i \sim N(0,1)
 $$
 
 
-### Power Spectrum
+### Power Spectrum and Noise Density
 
 Here is the plot. You can verify that the result is independet from the sampling rate, using python script. Spectrum density should be always $\sigma^2$ with any sampling rate, in the unit of valtage square per Hertz.
 
 ![image info](./pictures/whitenoise.png)
+
+
+### Verification
 
 We can say the independency from sampling rate is in another way.
 Power or energy in one second must be equal if it is calculated in time domain or in frequency domain.
