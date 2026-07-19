@@ -1,6 +1,6 @@
 # Random Walk
 
-Random walk is usually introduced in descrete random process and that is a very correct way. I think we can simply define continuous time process. Time derivertive of the sandom signal is white noise.
+Random walk is usually introduced as a discrete random process, and that is a very correct way. We can also define it as a continuous-time process: the time derivative of the random signal is white noise.
 
 $$
 \frac{d}{dt}y(t) = x(t)
