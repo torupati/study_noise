@@ -1,6 +1,6 @@
 # White Noise
 
-White noise is random signal whose power spectral density is flat. Inverse Fourier transform of power spectral density is auto correlation, which has correclation only at the same time point. 
+White noise is a random signal whose power spectral density is flat. The inverse Fourier transform of the power spectral density is the autocorrelation, which is nonzero only when the time points coincide.
 
 $$
 R(t_1,t_2) = \sigma^2 \delta(t_1 - t_2)
