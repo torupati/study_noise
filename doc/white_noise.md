@@ -16,9 +16,9 @@ Here $\sigma$ is noise density.
 
 ## Simulation
 
-If we simulate this in descrete signal, for example sampling rate is $F_s$ [Hz] or $F_s$ samples in a second, how can we generate the signal? Let's assume $x(t)$ is a signal of some sensor. Unit of $x(t)$ is for example voltage, or might be physical unit like degree per second(dps) in gyroscope, gravity unit in accelerometer, and so on.
+If we simulate this as a discrete signal, for example with sampling rate $F_s$ [Hz] ($F_s$ samples per second), how can we generate the signal? Let's assume $x(t)$ is a signal from some sensor. The unit of $x(t)$ might be voltage, or a physical unit like degree per second (dps) in a gyroscope, g in an accelerometer, and so on.
 
-We can sample independetly distributed random variable $w_i$ from Gaussian distribution in computation.
+We can sample an independently distributed random variable $w_i$ from a Gaussian distribution in computation.
 
 $$
 x_i = \sigma\sqrt{F_s}\,w_i = \frac{\sigma}{\sqrt{T_s}} w_i
