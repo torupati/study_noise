@@ -1,64 +1,190 @@
-# Simulation of noise density. White Noise.
-# Calculation is maybe correct.
-#
 import matplotlib.pyplot as plt
 import numpy as np
-rng = np.random.default_rng()
 
-sig_noise = 0.13 # Volt / sqrt(Hz) noise density
-time_length = 0.2 # s
-sr = 44100 # sammpling rate [Hz] = [1/s]
+
+def design_fir_lpf(sr: float, f_cutoff: float, num_taps: int = 255) -> np.ndarray:
+	"""Design a Hamming-windowed sinc FIR low-pass filter."""
+	if not (0.0 < f_cutoff < sr / 2.0):
+		raise ValueError("f_cutoff must satisfy 0 < f_cutoff < sr/2")
+	if num_taps % 2 == 0:
+		raise ValueError("num_taps must be odd for a symmetric linear-phase FIR")
+
+	n = np.arange(num_taps)
+	center = (num_taps - 1) / 2.0
+	fc = f_cutoff / sr
+	h_ideal = 2.0 * fc * np.sinc(2.0 * fc * (n - center))
+	window = np.hamming(num_taps)
+	h = h_ideal * window
+	h /= np.sum(h)
+	return h
+
+
+def psd_realin(x: np.ndarray, sr: float) -> tuple[np.ndarray, np.ndarray]:
+	"""Return one-sided PSD estimate from FFT."""
+	n = len(x)
+	x_fft = np.fft.rfft(x)
+	psd = (np.abs(x_fft) ** 2) / (n * sr)
+	#if n > 2:
+#		psd[1:-1] *= 2.0
+	freq = np.fft.rfftfreq(n, d=1.0 / sr)
+	return freq, psd
+
+
+def design_iir_butterworth_lpf(sr: float, f_cutoff: float) -> tuple[np.ndarray, np.ndarray]:
+	"""Design a 2nd-order digital Butterworth LPF (biquad)."""
+	if not (0.0 < f_cutoff < sr / 2.0):
+		raise ValueError("f_cutoff must satisfy 0 < f_cutoff < sr/2")
+
+	k = np.tan(np.pi * f_cutoff / sr)
+	norm = 1.0 / (1.0 + np.sqrt(2.0) * k + k * k)
+	b0 = k * k * norm
+	b1 = 2.0 * b0
+	b2 = b0
+	a1 = 2.0 * (k * k - 1.0) * norm
+	a2 = (1.0 - np.sqrt(2.0) * k + k * k) * norm
+
+	b = np.array([b0, b1, b2], dtype=float)
+	a = np.array([1.0, a1, a2], dtype=float)
+	return b, a
+
+
+def apply_iir_filter(x: np.ndarray, b: np.ndarray, a: np.ndarray) -> np.ndarray:
+	"""Apply an IIR filter using direct-form difference equation."""
+	y = np.zeros_like(x, dtype=float)
+	for n in range(len(x)):
+		x0 = x[n]
+		x1 = x[n - 1] if n >= 1 else 0.0
+		x2 = x[n - 2] if n >= 2 else 0.0
+		y1 = y[n - 1] if n >= 1 else 0.0
+		y2 = y[n - 2] if n >= 2 else 0.0
+		y[n] = b[0] * x0 + b[1] * x1 + b[2] * x2 - a[1] * y1 - a[2] * y2
+	return y
+
+
+def iir_freq_response(b: np.ndarray, a: np.ndarray, freq: np.ndarray, sr: float) -> np.ndarray:
+	"""Evaluate IIR frequency response on the provided frequency grid."""
+	w = 2.0 * np.pi * freq / sr
+	z1 = np.exp(-1j * w)
+	z2 = z1 * z1
+	num = b[0] + b[1] * z1 + b[2] * z2
+	den = a[0] + a[1] * z1 + a[2] * z2
+	return num / den
+
+
+# White-noise density [Volt/sqrt(Hz)]
+sig_noise = 0.03
+time_length = 30.0  # [s]
+sr = 400  # [Hz]
+f_cutoff = sr * 0.3
+num_taps = 25
 
 sample_num = int(sr * time_length)
-print(f'{sample_num=}')
+t_sample = 1.0 / sr
+t_axis = np.arange(sample_num) / sr
 
-x_td = sig_noise * np.sqrt(sr) * rng.standard_normal(sample_num) # Volt, nosie level 
-x_timdindex = [ i / sr for i in range(sample_num)]
-x_mean = np.mean(x_td)
-x_std = np.sqrt(np.var(x_td, axis=0))
-x_std2 = np.sqrt(np.sum(x_td * x_td) / sample_num)
-print(f'{x_mean=}')
-print(f'{x_std=} {sig_noise * np.sqrt(sr)=}')
-print(f'{x_std2=}')
+x_td = sig_noise / np.sqrt(t_sample) * np.random.normal(0.0, 1.0, sample_num)
+h_fir = design_fir_lpf(sr=sr, f_cutoff=f_cutoff, num_taps=num_taps)
+x_td_lpf = np.convolve(x_td, h_fir, mode="same")
+b_iir, a_iir = design_iir_butterworth_lpf(sr=sr, f_cutoff=f_cutoff)
+x_td_iir = apply_iir_filter(x_td, b_iir, a_iir)
 
-M = 8192
-x_fd = np.fft.fft(x_td, n=M)
-x_freqindex = [ i / len(x_fd) * sr for i in range(len(x_fd))]
-print(f"{np.sum(x_td * x_td)=}") # EU*EU
-print(f"{np.sum(x_fd * x_fd.conj()) / len(x_fd)=}") # EU*EU = EU/rt(Hz) **2 * Hz
-print(f"{np.sum(np.abs(x_fd)**2) / len(x_fd)=}") # EU*EU = EU/rt(Hz) **2 * Hz
-print("--")
+freq, psd_in = psd_realin(x_td, sr)
+_, psd_fir = psd_realin(x_td_lpf, sr)
+_, psd_iir = psd_realin(x_td_iir, sr)
 
-pwr_fd = (x_fd * x_fd.conj()).real 
+# One-sided theoretical white-noise PSD based on noise density.
+psd_in_theory = np.full_like(freq, 2.0 * sig_noise**2)
+psd_in_theory[0] = sig_noise**2
 
-print("")
-print(f"sig2 = {sig_noise**2=}")
-print(f"{np.mean(np.abs(x_fd)**2 / sr / sample_num)=}")
-print("")
-input()
+fir_h = np.fft.rfft(h_fir, n=sample_num)
+iir_h = iir_freq_response(b_iir, a_iir, freq, sr)
+psd_fir_theory = psd_in_theory * np.abs(fir_h) ** 2
+psd_iir_theory = psd_in_theory * np.abs(iir_h) ** 2
 
-fig, axs = plt.subplots(2, 1)
+print(f"sample_num={sample_num}")
+print(f"f_cutoff={f_cutoff:.2f} Hz, num_taps={num_taps}")
+print(f"input std={np.std(x_td):.6f}")
+print(f"FIR filtered std={np.std(x_td_lpf):.6f}")
+print(f"IIR filtered std={np.std(x_td_iir):.6f}")
 
-ax = axs[0]
-ax.plot(x_timdindex, x_td, ".", markersize=1)
-ax.axhline(y=sig_noise *np.sqrt(sr), label=r"$\sigma/\sqrt{T}$", color='red', linewidth=1)
-ax.axhline(y=-sig_noise *np.sqrt(sr), label=r"$-\sigma/\sqrt{T}$", color='red', linewidth=1)
+# Figure 1: time-domain signals + input PSD only.
+fig1, axs1 = plt.subplots(2, 1, figsize=(10, 7))
+fig1.suptitle(
+	f"White Noise Time Domain + Input PSD (F_cutoff={f_cutoff:.1f} Hz, FIR taps={num_taps})\n"
+	f"noise density={sig_noise} V/sqrt(Hz), sr={sr} Hz"
+)
+
+ax = axs1[0]
+ax.set_title("Time-domain signals")
+ax.plot(t_axis, x_td, ".", markersize=1, alpha=0.5, label="simulated noise")
+#ax.plot(t_axis, x_td_lpf, "-", linewidth=1.0, alpha=0.8, label="FIR filtered noise")
+#ax.plot(t_axis, x_td_iir, "-", linewidth=1.0, alpha=0.8, label="IIR filtered noise")
 ax.set_xlim([0, time_length])
-ax.set_xlabel('time [s]')
+ax.set_xlabel("time [s]")
+ax.set_ylabel("amplitude [V]")
 ax.grid(True)
-ax.legend(loc='lower right')
+ax.legend(loc="upper right")
 
-
-ax = axs[1]
-ax.plot(x_freqindex, np.abs(x_fd)**2 / sr / sample_num, ".", markersize=1)
-#ax.axhline(y=np.mean(pwr_fd), label=r"$E[Y]$", color='green')
-ax.axhline(y=sig_noise**2 , label=r"$\sigma^2$", color='red')
-ax.set_yscale('log')
-#ax.set_xscale('log')
-ax.set_xlim([0, sr/2])
-ax.set_xlabel('frequency [Hz]')
+ax = axs1[1]
+ax.set_title("Input Power Spectral Density (PSD)")
+ax.plot(freq, psd_in, ".", markersize=1, alpha=0.6, label="input PSD")
+ax.plot(freq, psd_in_theory, "-", linewidth=1.8, label="input PSD (theory)")
+#ax.axvline(f_cutoff, color="red", linewidth=1.2, linestyle="--", label="F_cutoff")
+ax.set_yscale("log")
+ax.set_xlim([0, sr / 2.0])
+ax.set_xlabel("frequency [Hz]")
+ax.set_ylabel("PSD [V^2/Hz]")
 ax.grid(True)
-ax.legend(loc='lower right')
-fig.tight_layout()
-fig.savefig('whitenoise.png')
+ax.legend(loc="upper right")
 
+fig1.tight_layout()
+fig1.savefig("whitenoise_time_and_input_psd.png", dpi=140)
+
+# Figure 2: PSD comparison + overlaid filter responses.
+fig2, ax_psd = plt.subplots(1, 1, figsize=(10, 5.5))
+fig2.suptitle(
+	f"PSD Comparison with FIR/IIR Responses (F_cutoff={f_cutoff:.1f} Hz, FIR taps={num_taps})\n"
+	f"noise density={sig_noise} V/sqrt(Hz), sr={sr} Hz"
+)
+
+ax_psd.set_title("Power Spectral Density (PSD)")
+ax_psd.plot(freq, psd_in, ".", markersize=1, alpha=0.45, label="input PSD")
+ax_psd.plot(freq, psd_fir, ".", markersize=1, alpha=0.7, label="FIR filtered PSD")
+ax_psd.plot(freq, psd_iir, ".", markersize=1, alpha=0.7, label="IIR filtered PSD")
+ax_psd.plot(freq, psd_in_theory, "-", linewidth=1.3, label="input PSD (theory)")
+ax_psd.plot(freq, psd_fir_theory, "-", linewidth=1.6, label="FIR PSD (theory)")
+ax_psd.plot(freq, psd_iir_theory, "-", linewidth=1.6, label="IIR PSD (theory)")
+ax_psd.axvline(f_cutoff, color="red", linewidth=1.2, linestyle="--", label="F_cutoff")
+ax_psd.set_yscale("log")
+ax_psd.set_xlim([0, sr / 2.0])
+ax_psd.set_ylim([1e-10, 1e-1])
+ax_psd.set_xlabel("frequency [Hz]")
+ax_psd.set_ylabel("PSD [V^2/Hz]")
+ax_psd.grid(True)
+
+#ax_resp = ax_psd.twinx()
+#fir_resp_db = 20.0 * np.log10(np.maximum(np.abs(fir_h), 1e-12))
+#iir_resp_db = 20.0 * np.log10(np.maximum(np.abs(iir_h), 1e-12))
+#ax_resp.plot(freq, fir_resp_db, "--", linewidth=1.3, alpha=0.9, label="FIR response [dB]")
+#ax_resp.plot(freq, iir_resp_db, "--", linewidth=1.3, alpha=0.9, label="IIR response [dB]")
+#ax_resp.set_ylabel("Filter response [dB]")
+
+handles_psd, labels_psd = ax_psd.get_legend_handles_labels()
+#handles_resp, labels_resp = ax_resp.get_legend_handles_labels()
+#ax_psd.legend(
+#	handles_psd + handles_resp,
+#	labels_psd + labels_resp,
+#	loc="upper left",
+#	bbox_to_anchor=(1.02, 1.0),
+#	borderaxespad=0.0,
+#)
+ax_psd.legend(
+		handles_psd,
+		labels_psd,
+		loc="upper left",
+		bbox_to_anchor=(1.02, 1.0),
+		borderaxespad=0.0,
+)
+
+fig2.tight_layout(rect=[0.0, 0.0, 0.82, 1.0])
+fig2.savefig("whitenoise_psd_fir_iir_response.png", dpi=140)
