@@ -17,33 +17,38 @@ def simulate_white_noise(n_samples: int, fs: float, sigma: float = 1.0, random_s
     return rng.normal(loc=0.0, scale=sigma, size=n_samples) * np.sqrt(fs)
 
 
-def compute_power_spectrum(x: np.ndarray, fs: float):
-    """Compute one-sided power spectral density (PSD) via the periodogram.
+def compute_power_spectrum(x: np.ndarray, fs: float, spectrum_type: str = "double-sided") -> tuple[np.ndarray, np.ndarray]:
+    """Compute power spectral density (PSD) via the periodogram.
 
     Uses the FFT-based periodogram with density scaling so PSD has units of V**2/Hz.
-    This not one-sided PSD, but the one-sided PSD can be obtained by doubling the non-DC and non-Nyquist bins.
 
     Args:
         x: Real-valued time series samples.
         fs: Sampling frequency in Hz.
+        spectrum_type: "double-sided" or "one-sided" PSD. Default is "double-sided".
 
     Returns:
         freqs: Array of non-negative frequencies (Hz).
         psd: PSD values corresponding to freqs.
     """
+    if spectrum_type not in ("double-sided", "one-sided"):
+        raise ValueError("spectrum_type must be 'double-sided' or 'one-sided'")
     x = np.asarray(x)
     N = x.size
     # FFT of the signal
     X = np.fft.rfft(x)
     # Two-sided PSD estimate (density) = (1/(fs*N)) * |X|^2
     psd = (1.0 / (fs * N)) * (np.abs(X) ** 2)
-    # Convert to one-sided PSD: multiply non-DC and non-Nyquist bins by 2
-    #if N % 2 == 0:
-    #    # even N: last bin is Nyquist and should not be doubled
-    #    if psd.size > 2:
-    #        psd[1:-1] *= 2
-    #else:
-    #    if psd.size > 1:
-    #        psd[1:] *= 2
+    if spectrum_type == "one-sided":
+        if N % 2 == 0:
+            # even N: last bin is Nyquist and should not be doubled
+            if psd.size > 2:
+                psd[1:-1] *= 2
+        else:
+            if psd.size > 1:
+                psd[1:] *= 2
+    else:
+        # For double-sided, include negative frequencies by mirroring the positive side
+        psd = np.concatenate((psd, psd[-2:0:-1]))
     freqs = np.fft.rfftfreq(N, d=1.0 / fs)
     return freqs, psd

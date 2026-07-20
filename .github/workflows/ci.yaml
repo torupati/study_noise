@@ -23,6 +23,15 @@ jobs:
       - name: Install dependencies
         run: uv sync --group dev
 
+      - name: Run Ruff
+        run: uv run ruff check src
+
+      - name: Run pylint
+        run: uv run pylint src
+
+      - name: Run mypy
+        run: uv run mypy src
+
       - name: Run pytest with coverage
         run: |
           uv run pytest --cov=src --cov-report=term-missing --cov-report=xml
