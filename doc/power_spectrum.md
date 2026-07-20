@@ -5,7 +5,7 @@
 Let $x(t)$ be a continuous-time signal. Any "normal" signal can be reconstructed by
 
 $$
- x(t) = \lim_{f \to \infty} \lim_{t^\prime \to \infty} \frac{1}{2\pi} \int \int x(t^\prime) e^{2\pi f (t-t^\prime)}df dt^\prime
+ x(t) = \frac{1}{2\pi} \int_{\infty}^{\infty} \int_{\infty}^{\infty} x(t^\prime) e^{2\pi f (t-t^\prime)}df dt^\prime
 $$
 
 ### Fourier Transform 
