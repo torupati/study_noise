@@ -22,7 +22,40 @@ commands = ["pytest -q"]
 
 [dependency-groups]
 dev = [
+    "mypy>=1.18.2",
+    "pre-commit>=4.3.0",
+    "pylint>=3.3.8",
     "pytest-cov>=6.2.1",
     "pytest>=9.1.1",
     "ruff>=0.15.22",
+]
+
+[tool.ruff]
+line-length = 130
+target-version = "py312"
+src = ["src"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "W"]
+
+[tool.mypy]
+python_version = "3.12"
+files = ["src"]
+ignore_missing_imports = true
+warn_unused_ignores = true
+warn_redundant_casts = true
+no_implicit_optional = true
+
+[tool.pylint.main]
+py-version = "3.12"
+
+[tool.pylint.format]
+max-line-length = 130
+
+[tool.pylint.messages_control]
+disable = [
+    "invalid-name",
+    "missing-module-docstring",
+    "missing-function-docstring",
+    "missing-class-docstring",
 ]
