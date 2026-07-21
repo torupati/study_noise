@@ -1,6 +1,6 @@
-# LPF
+# LPF Design
 
-### Ideal Low-Pass Filter
+## Ideal Low-Pass Filter
 
 We derive FIR filter coefficients from the frequency response of an ideal low-pass filter, which passes frequencies below a cutoff and rejects frequencies above it.
 
@@ -19,7 +19,7 @@ h(t)=2f_c\,\mathrm{sinc}(2f_ct)
 $$
 .
 
-### FIR Design
+## FIR Design
 
 The ideal low-pass filter is represented by a sinc function in the time domain. In FIR design, this ideal response is truncated to a finite length.
 
