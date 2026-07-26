@@ -14,3 +14,8 @@ Run pytest with uv run pytest. For coverage checks, run uv run pytest --cov=src 
 Run Ruff with uv run ruff check src. When needed, use uv run ruff check --fix src for automatic fixes.
 Run mypy with uv run mypy src. When needed, use uv run mypy --install-types --non-interactive src to automatically install missing type stubs.
 
+
+## Implementation Rules
+
+Do not use space indentation for code blocks of Python. Use 4 spaces for indentation in code blocks.
+
