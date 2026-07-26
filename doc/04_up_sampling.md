@@ -11,4 +11,4 @@ Frequency is 1024/256 = 4 Hz
 
 $f(t) = \sin(2\pi F_0 t)$
 
-$f[n] = \sin(2\pi F_0 n/F_s) = \sin(2\pi 0.25 * n / N)$
+$f[n] = \sin(2\pi F_0 n/F_s) = \sin(2\pi \cdot 0.25 * n / N)$
